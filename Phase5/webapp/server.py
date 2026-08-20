@@ -20,7 +20,6 @@ if str(_root) not in sys.path:
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -34,7 +33,11 @@ _here = Path(__file__).resolve().parent
 
 app = FastAPI(title="DineBot Bengaluru")
 templates = Jinja2Templates(directory=str(_here / "templates"))
-app.mount("/static", StaticFiles(directory=str(_here / "static")), name="static")
+# No /static mount: all CSS/JS is inline in templates/index.html, and git
+# doesn't track empty directories, so an unused Phase5/webapp/static/ mount
+# would 404-crash on any host that clones a fresh checkout (as it did on
+# Render - the directory silently vanished since there was nothing in it to
+# commit).
 
 
 class RecommendationRequest(BaseModel):
