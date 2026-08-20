@@ -2,7 +2,7 @@
 Phase 4 – Map Phase 3 recommendations + preferences to LLM prompt and parse response.
 
 Builds the messages list for Groq and parses the model output into
-per-restaurant explanations (2 lines each).
+per-restaurant explanations (a personalized 3-sentence recommendation each).
 """
 from __future__ import annotations
 
@@ -47,7 +47,10 @@ def parse_justifications(raw_response: str, recommendations: List[Recommendation
     lines = raw_response.strip().split("\n")
     # Match "Restaurant 1: ..." or "1. ..." or "1: ..."
     pattern = re.compile(r"^(?:Restaurant\s+)?(\d+)[.:]\s*(.+)$", re.IGNORECASE)
-    numbered = []
+    # A 3-sentence recommendation can wrap onto multiple lines; accumulate
+    # continuation lines into the current restaurant's buffer until the next
+    # numbered line starts.
+    numbered: List[tuple[int, list[str]]] = []
     for line in lines:
         line = line.strip()
         if not line:
@@ -56,15 +59,17 @@ def parse_justifications(raw_response: str, recommendations: List[Recommendation
         if m:
             num = int(m.group(1))
             text = m.group(2).strip()
-            numbered.append((num, text))
+            numbered.append((num, [text]))
+        elif numbered:
+            numbered[-1][1].append(line)
 
     # Sort by number and assign by index (1-based number -> 0-based index)
     numbered.sort(key=lambda x: x[0])
     result: List[str] = [""] * len(recommendations)
-    for num, text in numbered:
+    for num, text_lines in numbered:
         idx = num - 1
         if 0 <= idx < len(recommendations):
-            result[idx] = text
+            result[idx] = " ".join(text_lines).strip()
 
     # Fallback for any missing explanation
     for i in range(len(result)):

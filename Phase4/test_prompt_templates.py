@@ -104,4 +104,4 @@ def test_build_justification_prompt():
     assert "4" in out
     assert "B" in out
     assert "Restaurant 1" in out or "1." in out
-    assert "two lines" in out.lower() or "2 lines" in out
+    assert "three sentences" in out.lower()

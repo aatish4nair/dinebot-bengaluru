@@ -36,7 +36,16 @@ class LLMConfig:
     # Model and generation
     model: str = "openai/gpt-oss-20b"
     temperature: float = 0.3
-    max_tokens: int = 1024
+    max_tokens: int = 1500
+
+    # openai/gpt-oss-20b is a reasoning model: it spends part of its token
+    # budget on hidden chain-of-thought before writing the visible answer.
+    # This task (short, personalized copy) doesn't need deep reasoning, and
+    # without this the model can burn the entire max_tokens budget on
+    # reasoning and return an empty completion (finish_reason="length").
+    # One of "low", "medium", "high"; set to None to omit the parameter
+    # entirely (e.g. if switching to a non-reasoning model).
+    reasoning_effort: str | None = "low"
 
     # Timeouts and retries
     request_timeout_seconds: float = 60.0

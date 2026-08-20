@@ -83,6 +83,13 @@ def chat_completion(
     temp = temperature if temperature is not None else cfg.temperature
     max_tok = max_tokens if max_tokens is not None else cfg.max_tokens
 
+    extra_kwargs: Dict[str, Any] = {}
+    if cfg.reasoning_effort is not None:
+        # Reasoning models (e.g. openai/gpt-oss-20b) otherwise spend an
+        # unbounded share of max_tokens on hidden chain-of-thought, which can
+        # leave zero tokens for the visible answer.
+        extra_kwargs["reasoning_effort"] = cfg.reasoning_effort
+
     last_error: Exception | None = None
     for attempt in range(cfg.max_retries + 1):
         try:
@@ -92,11 +99,22 @@ def chat_completion(
                 temperature=temp,
                 max_tokens=max_tok,
                 timeout=cfg.request_timeout_seconds,
+                **extra_kwargs,
             )
             choice = response.choices[0] if response.choices else None
             if not choice or not choice.message:
                 raise GroqAPIError("Empty response from Groq API")
-            return (choice.message.content or "").strip()
+            content = (choice.message.content or "").strip()
+            if not content and choice.finish_reason == "length":
+                # The model exhausted max_tokens (likely on hidden reasoning)
+                # before producing any visible text. Treat as a failure so it
+                # retries rather than silently returning blank explanations.
+                raise GroqAPIError(
+                    "Groq response truncated before any content was generated "
+                    "(finish_reason=length, empty content) - max_tokens is too low "
+                    "for this model's reasoning overhead"
+                )
+            return content
         except Exception as e:
             last_error = e
             if attempt < cfg.max_retries:

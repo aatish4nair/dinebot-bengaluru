@@ -15,7 +15,8 @@ def test_llm_config_has_expected_attributes():
     assert config.groq_api_key == "test_key_123"
     assert config.model == "openai/gpt-oss-20b"
     assert config.temperature == 0.3
-    assert config.max_tokens == 1024
+    assert config.max_tokens == 1500
+    assert config.reasoning_effort == "low"
     assert config.max_retries >= 0
 
 

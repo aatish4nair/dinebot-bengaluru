@@ -1,8 +1,10 @@
 """
-Phase 4 – Prompt templates for LLM-generated restaurant justifications.
+Phase 4 – Prompt templates for LLM-generated restaurant recommendations.
 
-Formats user preferences and restaurant list into a prompt that asks Llama 3.1
-for exactly two lines per restaurant (price, ratings, cuisines).
+Formats user preferences and restaurant list into a prompt that asks the
+Groq-hosted model for a personalized, 3-sentence recommendation per
+restaurant, grounded in its cuisines and locality rather than a mechanical
+recap of its rating/price (which already appear elsewhere on the card).
 """
 from __future__ import annotations
 
@@ -60,18 +62,23 @@ def build_restaurant_list(recommendations: list[Recommendation]) -> str:
     return "\n".join(lines)
 
 
-SYSTEM_INSTRUCTION = """You are a helpful assistant that writes short, concise justifications for restaurant recommendations in Bengaluru.
-For each restaurant listed, you must write exactly two lines. Focus on:
-- Price suitability (whether it fits the user's budget).
-- Ratings (how well it is rated).
-- Cuisines (match to user preferences).
+SYSTEM_INSTRUCTION = """You are a friendly, knowledgeable Bengaluru local recommending restaurants to a friend.
 
-Keep each justification to exactly two short sentences. Do not add extra commentary before or after the list."""
+For each restaurant listed, write a personalized recommendation of exactly three sentences explaining why they should go there. Ground your reasoning in the restaurant's cuisines, its neighborhood/locality, and what its name or cuisine mix suggests about its food and vibe (e.g. a "Bakehouse" implies fresh baked goods; "Continental, French" implies a European-leaning menu).
+
+Rules:
+- Do NOT restate the exact rating (e.g. "4.5 rating") or the exact cost (e.g. "₹900") as numbers - those already appear elsewhere on the card. You may refer to it fitting the budget or being well-loved in general terms, without repeating the figures.
+- Make each restaurant's recommendation genuinely different from the others in phrasing, structure, and opening line - avoid a formulaic template that just swaps in the restaurant name.
+- Write like a genuine, warm recommendation, not a checklist of criteria matched.
+- Exactly three sentences per restaurant. No more, no less.
+
+Do not add extra commentary before or after the list."""
 
 
 def build_justification_prompt(preferences: UserPreferences, recommendations: list[Recommendation]) -> str:
     """
-    Build the full user prompt asking for 2-line justifications per restaurant.
+    Build the full user prompt asking for a 3-sentence personalized
+    recommendation per restaurant.
 
     Returns the user message content (not the full messages list).
     """
@@ -84,10 +91,10 @@ def build_justification_prompt(preferences: UserPreferences, recommendations: li
 Recommended restaurants (numbered):
 {restaurant_block}
 
-For each restaurant above, write exactly two lines explaining why it is a good match. Use this exact format so we can parse your response:
+For each restaurant above, write exactly three sentences giving a personalized recommendation for why the user should go there - using its cuisines, locality, and name/vibe as your reasons, not a recap of its rating or price. Use this exact format so we can parse your response:
 
-Restaurant 1: [First line]. [Second line.]
-Restaurant 2: [First line]. [Second line.]
+Restaurant 1: [Sentence one.] [Sentence two.] [Sentence three.]
+Restaurant 2: [Sentence one.] [Sentence two.] [Sentence three.]
 ... and so on for each number.
 
 Write only the numbered lines (e.g. "Restaurant 1: ...", "Restaurant 2: ...") with no other text before or after."""
