@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>DineBot Bengaluru</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #74212b;
+      color: #241820;
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+    }
+
+    .container {
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    .header {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 38px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      font-size: 20px;
+      font-weight: 400;
+    }
+
+    /* =========================
+       FILTER PANEL
+    ========================= */
+
+    .filter-card {
+      background: #f7eeee;
+      border-radius: 24px;
+      padding: 34px 40px 32px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 26px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .field label {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    select {
+      width: 100%;
+      height: 58px;
+      border: 1px solid #e2cfd2;
+      border-radius: 13px;
+      background: #faf4f4;
+      padding: 0 20px;
+      font-size: 18px;
+      color: #34272d;
+      outline: none;
+      cursor: pointer;
+      appearance: auto;
+    }
+
+    select:focus {
+      border-color: #8d2634;
+      box-shadow: 0 0 0 2px rgba(141, 38, 52, 0.12);
+    }
+
+    /* =========================
+       BUTTON
+    ========================= */
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 29px;
+    }
+
+    .recommend-btn {
+      background: #8d2634;
+      color: #fff;
+      border: none;
+      border-radius: 13px;
+      padding: 15px 52px;
+      font-size: 19px;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 310px;
+      box-shadow: 0 7px 12px rgba(0, 0, 0, 0.18);
+      transition: all 0.2s ease;
+    }
+
+    .recommend-btn:hover {
+      background: #761f2c;
+      transform: translateY(-1px);
+    }
+
+    .recommend-btn:active {
+      transform: translateY(1px);
+    }
+
+    .recommend-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* =========================
+       RECOMMENDATIONS HEADER
+    ========================= */
+
+    .recommendations {
+      margin-top: 28px;
+    }
+
+    .recommendations-title {
+      text-align: center;
+      color: #fff;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 27px;
+      position: relative;
+    }
+
+    .decorative-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 12px;
+    }
+
+    .decorative-line::before,
+    .decorative-line::after {
+      content: "";
+      width: 82px;
+      height: 2px;
+      background: #e8a6ad;
+    }
+
+    .diamond {
+      width: 10px;
+      height: 10px;
+      background: #e8a6ad;
+      transform: rotate(45deg);
+    }
+
+    /* =========================
+       RECOMMENDATION GRID
+    ========================= */
+
+    .recommendation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .restaurant-card {
+      background: #f7eeee;
+      border-radius: 21px;
+      padding: 25px 30px 28px;
+      min-height: 305px;
+    }
+
+    .restaurant-title {
+      font-size: 23px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    /* =========================
+       RATING
+    ========================= */
+
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .stars {
+      display: flex;
+      gap: 2px;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .star-filled {
+      color: #f4a825;
+    }
+
+    .star-empty {
+      color: #b8a9ac;
+    }
+
+    .rating-text {
+      font-size: 17px;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+
+    /* =========================
+       RESTAURANT DETAILS
+    ========================= */
+
+    .detail {
+      font-size: 17px;
+      margin-bottom: 13px;
+      line-height: 1.4;
+    }
+
+    .detail strong {
+      font-weight: 700;
+    }
+
+    .restaurant-description {
+      border-top: 1px solid #dfcbcf;
+      padding-top: 18px;
+      margin-top: 20px;
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    /* =========================
+       STATUS MESSAGES (loading / empty / error)
+    ========================= */
+
+    .status-message {
+      text-align: center;
+      color: #fff;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 13px;
+      padding: 20px;
+    }
+
+    .status-message.error {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media (max-width: 750px) {
+
+      body {
+        padding: 28px 15px 50px;
+      }
+
+      .header h1 {
+        font-size: 30px;
+      }
+
+      .header p {
+        font-size: 17px;
+      }
+
+      .filter-card {
+        padding: 25px 20px;
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .recommendation-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .recommend-btn {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .restaurant-card {
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <!-- =========================
+         HEADER
+    ========================== -->
+
+    <header class="header">
+      <h1>DineBot Bengaluru 🍲📍🤖</h1>
+      <p>Choose your preferences and get your recommendations.</p>
+    </header>
+
+
+    <!-- =========================
+         FILTER FORM
+    ========================== -->
+
+    <section class="filter-card">
+
+      <div class="filter-grid">
+
+        <!-- Place -->
+        <div class="field">
+          <label for="place">Place</label>
+
+          <select id="place">
+            <option value="">Choose a place</option>
+            {% for p in places %}
+            <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+
+        <!-- Price -->
+        <div class="field">
+          <label for="price">Price Range</label>
+
+          <select id="price">
+            <option value="">Choose a price-range</option>
+            {% for opt in price_options %}
+            <option value="{{ opt }}">{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+
+        <!-- Rating -->
+        <div class="field">
+          <label for="rating">Hotel Ratings</label>
+
+          <select id="rating">
+            <option value="">Choose a rating</option>
+            {% for opt in rating_options %}
+            <option value="{{ opt }}">{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+
+        <!-- Cuisine -->
+        <div class="field">
+          <label for="cuisine">Cuisines</label>
+
+          <select id="cuisine">
+            <option value="">Choose a cuisine</option>
+            {% for c in cuisines %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+
+
+      <!-- Recommendation Button -->
+
+      <div class="button-container">
+        <button
+          id="recommend-btn"
+          class="recommend-btn"
+          onclick="getRecommendations()"
+        >
+          Get recommendations
+        </button>
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         RECOMMENDATIONS
+    ========================== -->
+
+    <section class="recommendations" id="recommendations-section" style="display: none;">
+
+      <h2 class="recommendations-title">
+        Top recommendations
+
+        <div class="decorative-line">
+          <span class="diamond"></span>
+        </div>
+      </h2>
+
+      <div class="recommendation-grid" id="recommendation-grid">
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       JAVASCRIPT
+  ========================== -->
+
+  <script>
+
+    function starsHtml(rating) {
+      const value = typeof rating === "number" ? rating : 0;
+      const filled = Math.max(0, Math.min(5, Math.round(value)));
+      let html = "";
+      for (let i = 0; i < 5; i++) {
+        html += `<span class="${i < filled ? "star-filled" : "star-empty"}">${i < filled ? "★" : "☆"}</span>`;
+      }
+      return html;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str == null ? "" : String(str);
+      return div.innerHTML;
+    }
+
+    function cardHtml(rec) {
+      const ratingText = typeof rec.rating === "number" ? rec.rating.toFixed(1) : "N/A";
+      const costText = typeof rec.cost === "number" ? `₹${Math.round(rec.cost)}` : "N/A";
+      const cuisines = (rec.cuisines || []).join(", ") || "N/A";
+
+      return `
+        <article class="restaurant-card">
+          <h3 class="restaurant-title">${rec.rank}. ${escapeHtml(rec.name)}</h3>
+
+          <div class="rating">
+            <div class="stars">${starsHtml(rec.rating)}</div>
+            <span class="rating-text">Rating: ${ratingText}</span>
+          </div>
+
+          <p class="detail"><strong>Place:</strong> ${escapeHtml(rec.place)} | ${costText}</p>
+          <p class="detail"><strong>Cuisines:</strong> ${escapeHtml(cuisines)}</p>
+          <p class="detail"><strong>Location:</strong> ${escapeHtml(rec.location)}</p>
+
+          <p class="restaurant-description">${escapeHtml(rec.explanation)}</p>
+        </article>
+      `;
+    }
+
+    function showRecommendationsSection() {
+      document.getElementById("recommendations-section").style.display = "block";
+    }
+
+    function renderMessage(message, isError) {
+      showRecommendationsSection();
+      const grid = document.getElementById("recommendation-grid");
+      grid.style.gridTemplateColumns = "1fr";
+      grid.innerHTML = `<div class="status-message${isError ? " error" : ""}">${escapeHtml(message)}</div>`;
+    }
+
+    function renderRecommendations(recs) {
+      showRecommendationsSection();
+      const grid = document.getElementById("recommendation-grid");
+      if (!recs.length) {
+        grid.style.gridTemplateColumns = "1fr";
+        grid.innerHTML = '<div class="status-message">No recommendations found. Try relaxing your filters (place, rating, price, or cuisine).</div>';
+        return;
+      }
+      grid.style.gridTemplateColumns = "";
+      grid.innerHTML = recs.map(cardHtml).join("");
+    }
+
+    async function getRecommendations() {
+      const place = document.getElementById("place").value;
+      const price = document.getElementById("price").value;
+      const rating = document.getElementById("rating").value;
+      const cuisine = document.getElementById("cuisine").value;
+
+      const btn = document.getElementById("recommend-btn");
+      btn.disabled = true;
+      btn.textContent = "Finding restaurants...";
+      renderMessage("Fetching recommendations...", false);
+
+      try {
+        const response = await fetch("/api/recommendations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ place, price, rating, cuisine }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          renderMessage(data.error || "Something went wrong. Please try again.", true);
+          return;
+        }
+
+        renderRecommendations(data.recommendations || []);
+      } catch (err) {
+        renderMessage("Could not reach the recommendation service. Please try again.", true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Get recommendations";
+      }
+    }
+
+  </script>
+
+</body>
+</html>

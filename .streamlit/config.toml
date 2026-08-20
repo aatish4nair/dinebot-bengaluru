@@ -1,0 +1,3 @@
+# Prevent FSEvents/watchdog crash on some systems (e.g. "Cannot start fsevents stream")
+[server]
+fileWatcherType = "none"
