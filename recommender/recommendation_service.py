@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import List
 
@@ -11,11 +12,16 @@ from .schemas import Recommendation, UserPreferences
 from .scoring_engine import score_restaurant
 
 
-def _load_feature_dataset(path: Path | None = None) -> Dataset:
+@lru_cache(maxsize=8)
+def _read_feature_dataset(parquet_path: Path) -> Dataset:
     """
-    Load the feature-engineered dataset produced by features.
+    Read and parse the gold Parquet file at `parquet_path`, once per distinct
+    path. The dataset doesn't change while the server is running, so this
+    avoids re-reading and re-parsing the same file from disk on every
+    request. Keyed by the resolved path (not "was a path passed in") so
+    tests that point the config at a different, temporary file are
+    unaffected and never see another test's/environment's cached data.
     """
-    parquet_path = path or recommendation_config.RECOMMENDATION_CONFIG.gold_input_path
     if not parquet_path.is_file():
         raise FileNotFoundError(f"features gold dataset not found at {parquet_path}")
 
@@ -29,6 +35,14 @@ def _load_feature_dataset(path: Path | None = None) -> Dataset:
 
     df = pd.read_parquet(parquet_path)
     return HFDataset.from_pandas(df, preserve_index=False)
+
+
+def _load_feature_dataset(path: Path | None = None) -> Dataset:
+    """
+    Load the feature-engineered dataset produced by features.
+    """
+    parquet_path = path or recommendation_config.RECOMMENDATION_CONFIG.gold_input_path
+    return _read_feature_dataset(parquet_path)
 
 
 def get_recommendations(preferences: UserPreferences) -> List[Recommendation]:
