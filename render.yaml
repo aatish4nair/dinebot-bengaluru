@@ -1,0 +1,23 @@
+# Render service definition for DineBot Bengaluru.
+#
+# Committed so the start command lives with the code. It drifted once already:
+# the app moved from Phase5/webapp/ to web/ in 3dbdf64, the dashboard's Start
+# Command kept naming the old path, and every deploy since crash-looped on
+# ModuleNotFoundError while Render quietly served the last healthy build.
+#
+# NOTE: this file governs services created or synced from a Render Blueprint.
+# An existing dashboard-created service keeps using its own stored settings, so
+# updating Settings -> Build & Deploy -> Start Command to the value below is
+# still the clean fix. Phase5/ is a shim that keeps the old path working until
+# then; delete it once the command is updated.
+services:
+  - type: web
+    name: dinebot-bengaluru
+    runtime: python
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn web.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Set the value in the Render dashboard - never commit the key.
+      - key: GROQ_API_KEY
+        sync: false
