@@ -30,6 +30,17 @@ EXPECTED_COLUMNS: Tuple[str, ...] = (
     "Votes",
 )
 
+# Outlet-level location columns that schema_mapping also carries through.
+# Deliberately NOT part of EXPECTED_COLUMNS: they are nullable (some rows have
+# no address recorded) and canonical test fixtures predate them, so requiring
+# them would fail validation for data that is otherwise perfectly usable.
+LOCATION_COLUMNS: Tuple[str, ...] = (
+    "Address",
+    "Neighbourhood",
+    "Phone",
+    "Source URL",
+)
+
 
 def validate_schema(dataset: Dataset, required_columns: Iterable[str] = EXPECTED_COLUMNS) -> ValidationResult:
     """

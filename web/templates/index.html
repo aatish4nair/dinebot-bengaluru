@@ -15,7 +15,7 @@
 
     body {
       font-family: Arial, Helvetica, sans-serif;
-      background: #74212b;
+      background: #51121a;
       color: #241820;
       min-height: 100vh;
       padding: 40px 20px 80px;
@@ -195,6 +195,58 @@
       font-size: 23px;
       font-weight: 700;
       margin-bottom: 14px;
+    }
+
+    /* Title row: keeps the existing title on the left and lets the compact
+       Get Directions pill sit at the top-right of the card. */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-header .restaurant-title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .directions-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #8d2634;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .directions-btn:hover {
+      background: #761f2c;
+      transform: translateY(-1px);
+    }
+
+    .directions-btn:active {
+      transform: translateY(1px);
+    }
+
+    .directions-btn:focus-visible {
+      outline: 2px solid #8d2634;
+      outline-offset: 2px;
+    }
+
+    .directions-btn svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+      display: block;
     }
 
     /* =========================
@@ -446,6 +498,25 @@
       return div.innerHTML;
     }
 
+    // Get Directions pill. Rendered only for outlets that have a real
+    // destination - delivery-only and address-less records get no button at
+    // all, not a disabled or invisible one. The href is the plain Google Maps
+    // URL the server built from this card's own address; clicking it is the
+    // only moment any Google service is contacted.
+    function directionsButtonHtml(rec) {
+      if (rec.navigation_ready !== true || !rec.directions_url) return "";
+      const pin = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>`;
+      return `
+        <a class="directions-btn"
+           href="${escapeHtml(rec.directions_url)}"
+           target="_blank"
+           rel="noopener noreferrer"
+           aria-label="Get directions to ${escapeHtml(rec.name)}">
+          ${pin}Get Directions
+        </a>
+      `;
+    }
+
     function cardHtml(rec) {
       const ratingText = typeof rec.rating === "number" ? rec.rating.toFixed(1) : "N/A";
       const costText = typeof rec.cost === "number" ? `₹${Math.round(rec.cost)}` : "N/A";
@@ -453,7 +524,10 @@
 
       return `
         <article class="restaurant-card">
-          <h3 class="restaurant-title">${rec.rank}. ${escapeHtml(rec.name)}</h3>
+          <div class="card-header">
+            <h3 class="restaurant-title">${rec.rank}. ${escapeHtml(rec.name)}</h3>
+            ${directionsButtonHtml(rec)}
+          </div>
 
           <div class="rating">
             <div class="stars">${starsHtml(rec.rating)}</div>

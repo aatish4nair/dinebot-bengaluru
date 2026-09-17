@@ -27,6 +27,7 @@ from pydantic import BaseModel
 # GROQ_API_KEY from the project root .env as a side effect of import.
 from web.api_gateway import fetch_enriched_recommendations
 from web.config import get_cuisines, get_places, get_region
+from web.directions import build_directions_url
 from web.preferences import PRICE_OPTIONS, RATING_OPTIONS, form_to_preferences
 
 _here = Path(__file__).resolve().parent
@@ -72,6 +73,23 @@ def _restaurant_to_card(rank: int, rec) -> dict:
         "cuisines": r.cuisines or [],
         "location": f"{get_region(r.locality)} Bengaluru",
         "explanation": rec.explanation,
+        # Outlet identity. `place`/`location` keep their existing listing-zone
+        # meaning for backward compatibility; `neighbourhood` is the outlet's
+        # real one. Of these, only `directions_url`/`navigation_ready` are
+        # rendered (as the Get Directions button) - the rest ride along for
+        # clients that want the outlet's own address.
+        "outlet_id": r.outlet_id,
+        "address": r.address,
+        "locality": r.locality,
+        "neighbourhood": r.neighbourhood,
+        "city": r.city,
+        "phone": r.phone,
+        # Get Directions. `directions_url` is built per card from that
+        # outlet's own address, so two branches of one chain get two
+        # different destinations. It is None whenever navigation_ready is
+        # False, and the frontend renders no button in that case.
+        "navigation_ready": r.navigation_ready,
+        "directions_url": build_directions_url(r),
     }
 
 

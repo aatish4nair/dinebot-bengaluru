@@ -39,8 +39,14 @@ def fetch_enriched_recommendations(preferences: UserPreferences) -> List[LLMEnri
     seen = set()
     out: List[LLMEnrichedRecommendation] = []
     for r in raw:
-        name = (r.restaurant.name or "").strip()
-        if name and name not in seen:
-            seen.add(name)
+        # Deduplicate by physical outlet, not by name. Keying on the name
+        # alone collapsed every branch of a chain into a single card - the
+        # Indiranagar and Jayanagar Cafe Coffee Days are different places to
+        # go, and dropping one of them loses a real recommendation.
+        if not (r.restaurant.name or "").strip():
+            continue
+        key = r.restaurant.outlet_id
+        if key not in seen:
+            seen.add(key)
             out.append(r)
     return out

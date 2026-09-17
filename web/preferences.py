@@ -20,16 +20,16 @@ from recommender.schemas import UserPreferences
 # Rating options: "X+" means "X and above" - a direct min_rating threshold.
 RATING_OPTIONS = ["3.0+", "3.5+", "4.0+", "4.5+"]
 
-# Price options: an upper bound on average cost for two. The lower edge of
-# each bucket is informational only (not enforced), matching the original
-# recommender max_price_for_two semantics.
+# Price options: an inclusive (min, max) range on average cost for two. Both
+# edges are enforced - picking "₹300 - ₹600" must not return a ₹150
+# restaurant. `None` as the upper edge means unbounded ("₹1000+").
 PRICE_OPTIONS = ["₹100 - ₹300", "₹300 - ₹600", "₹600 - ₹1000", "₹1000+"]
 
-_PRICE_TO_MAX = {
-    "₹100 - ₹300": 300.0,
-    "₹300 - ₹600": 600.0,
-    "₹600 - ₹1000": 1000.0,
-    "₹1000+": None,
+_PRICE_TO_RANGE: dict[str, tuple[float | None, float | None]] = {
+    "₹100 - ₹300": (100.0, 300.0),
+    "₹300 - ₹600": (300.0, 600.0),
+    "₹600 - ₹1000": (600.0, 1000.0),
+    "₹1000+": (1000.0, None),
 }
 
 
@@ -46,11 +46,21 @@ def rating_option_to_min_rating(value: str | None) -> float | None:
         return None
 
 
+def price_option_to_range(value: str | None) -> tuple[float | None, float | None]:
+    """'₹300 - ₹600' -> (300.0, 600.0). Empty/unrecognized -> (None, None)."""
+    if not value:
+        return (None, None)
+    return _PRICE_TO_RANGE.get(value.strip(), (None, None))
+
+
+def price_option_to_min_price(value: str | None) -> float | None:
+    """'₹300 - ₹600' -> 300.0, '₹1000+' -> 1000.0."""
+    return price_option_to_range(value)[0]
+
+
 def price_option_to_max_price(value: str | None) -> float | None:
     """'₹300 - ₹600' -> 600.0, '₹1000+' -> None (no maximum)."""
-    if not value:
-        return None
-    return _PRICE_TO_MAX.get(value.strip())
+    return price_option_to_range(value)[1]
 
 
 def form_to_preferences(
@@ -60,9 +70,11 @@ def form_to_preferences(
     cuisine: str | None,
 ) -> UserPreferences:
     """Convert the web form's raw values into a recommender UserPreferences."""
+    min_price, max_price = price_option_to_range(price)
     return UserPreferences(
         place=place.strip() if place else None,
         min_rating=rating_option_to_min_rating(rating),
-        max_price_for_two=price_option_to_max_price(price),
+        min_price_for_two=min_price,
+        max_price_for_two=max_price,
         cuisines=[cuisine.strip()] if cuisine else [],
     )

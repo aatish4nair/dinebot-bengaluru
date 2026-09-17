@@ -45,13 +45,20 @@ def _row_matches_preferences(row: dict, preferences: UserPreferences) -> bool:
         except (TypeError, ValueError):
             return False
 
-    # Max price constraint.
-    if preferences.max_price_for_two is not None:
+    # Price range constraint - both edges inclusive, both hard. A row with no
+    # recorded price cannot be shown to satisfy either edge, so it is dropped
+    # whenever the user asked for a range at all.
+    if preferences.min_price_for_two is not None or preferences.max_price_for_two is not None:
         price = row.get("Average Cost for two")
         try:
-            if price is None or float(price) > float(preferences.max_price_for_two):
-                return False
+            price_value = float(price) if price is not None else None
         except (TypeError, ValueError):
+            return False
+        if price_value is None:
+            return False
+        if preferences.min_price_for_two is not None and price_value < float(preferences.min_price_for_two):
+            return False
+        if preferences.max_price_for_two is not None and price_value > float(preferences.max_price_for_two):
             return False
 
     # Cuisine overlap constraint (if user specified cuisines).
@@ -100,5 +107,12 @@ def row_to_restaurant_record(row: dict) -> RestaurantRecord:
         cuisines=_normalize_cuisine_list(cuisines_list),
         price_bucket=row.get("price_bucket"),
         rating_bucket=row.get("rating_bucket"),
+        # Outlet-level location. Absent from datasets built before these
+        # columns were carried through, so read defensively - a record without
+        # them still works, it just can't identify a specific outlet.
+        address=row.get("Address"),
+        neighbourhood=row.get("Neighbourhood"),
+        phone=row.get("Phone"),
+        source_url=row.get("Source URL"),
     )
 

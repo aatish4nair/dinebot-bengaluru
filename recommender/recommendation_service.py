@@ -37,6 +37,28 @@ def _read_feature_dataset(parquet_path: Path) -> Dataset:
     return HFDataset.from_pandas(df, preserve_index=False)
 
 
+def _within_price_range(price: float | None, preferences: UserPreferences) -> bool:
+    """
+    Whether `price` satisfies the user's selected range, both edges inclusive.
+
+    A record with no recorded price fails a range the user actually selected -
+    we cannot claim an unknown price falls inside it.
+    """
+    if preferences.min_price_for_two is None and preferences.max_price_for_two is None:
+        return True
+    try:
+        value = float(price) if price is not None else None
+    except (TypeError, ValueError):
+        return False
+    if value is None:
+        return False
+    if preferences.min_price_for_two is not None and value < float(preferences.min_price_for_two):
+        return False
+    if preferences.max_price_for_two is not None and value > float(preferences.max_price_for_two):
+        return False
+    return True
+
+
 def _load_feature_dataset(path: Path | None = None) -> Dataset:
     """
     Load the feature-engineered dataset produced by features.
@@ -55,29 +77,16 @@ def get_recommendations(preferences: UserPreferences) -> List[Recommendation]:
     Filtering is applied in this logical order:
         1. Place (locality within the default city)
         2. Rating (min_rating)
-        3. Price range (max_price_for_two)
+        3. Price range (min_price_for_two .. max_price_for_two, both inclusive)
         4. Cuisine
 
-    If no restaurants match all filters and cuisines were specified, the cuisine
-    filter is relaxed while keeping place, rating, and price constraints. This
-    ensures that strict cuisine filters do not result in empty results when
-    suitable restaurants exist for the selected place.
+    Every one of those is a hard constraint. When nothing satisfies all four,
+    the answer is an empty list - the caller shows an empty state rather than
+    a page of restaurants the user did not ask for.
     """
     dataset = _load_feature_dataset()
 
-    # First pass: apply all filters, including cuisines.
     candidates_ds = select_candidate_dataset(dataset, preferences)
-
-    # If nothing matches but cuisines were specified, relax the cuisine filter
-    # while keeping place, rating, and price constraints.
-    if len(candidates_ds) == 0 and preferences.cuisines:
-        relaxed_prefs = UserPreferences(
-            place=preferences.place,
-            min_rating=preferences.min_rating,
-            max_price_for_two=preferences.max_price_for_two,
-            cuisines=[],
-        )
-        candidates_ds = select_candidate_dataset(dataset, relaxed_prefs)
 
     recommendations: List[Recommendation] = []
     for row in candidates_ds:
@@ -87,6 +96,11 @@ def get_recommendations(preferences: UserPreferences) -> List[Recommendation]:
             rating = record.aggregate_rating
             if rating is None or float(rating) < float(preferences.min_rating):
                 continue
+        # Safety: the selected price range is a hard constraint, so it is
+        # re-checked here as well. Scoring runs below and sorting runs after
+        # it; neither may promote a restaurant the user priced out.
+        if not _within_price_range(record.average_cost_for_two, preferences):
+            continue
         score = score_restaurant(record, preferences)
         recommendations.append(Recommendation(restaurant=record, score=score))
 
